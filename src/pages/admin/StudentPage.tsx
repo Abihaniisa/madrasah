@@ -8,12 +8,16 @@ import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I, waLink } from "../../components/Layout";
 import { DelayedSkeleton } from "../../components/Skeleton";
+import { supabase } from "../../lib/supabase";
 
 export default function StudentPage() {
   const ready = useRequireAuth();
   const { id } = useParams<{ id: string }>();
   const [mode, setMode] = useMode();
   const [data, setData] = useState<SchoolData | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function reload() { setData(await loadSchool()); }
 
   useEffect(() => { loadSchool().then(setData); }, []);
 
@@ -28,6 +32,17 @@ export default function StudentPage() {
   const fee = data.fees.find(f => f.student_id === s.id && f.year === CONFIG.regYear);
 
   const phoneForRemind = (s.student_phone || s.guardian_phone || "").replace(/[^0-9+]/g, "");
+
+  async function toggleMode() {
+    if (mode !== "manage" || busy) return;
+    const next = s!.mode === "online" ? "physical" : "online";
+    const ok = window.confirm(`Change mode to ${next === "online" ? "Online" : "Physical"}?`);
+    if (!ok) return;
+    setBusy(true);
+    await supabase.from("students").update({ mode: next }).eq("id", s!.id);
+    await reload();
+    setBusy(false);
+  }
 
   return (
     <div>
@@ -55,7 +70,23 @@ export default function StudentPage() {
                 {report.pending
                   ? <span className="pill pill-warning pill-dot">Provisional</span>
                   : <span className="pill pill-success pill-dot">Complete</span>}
-                <span className="pill pill-info">{s.mode === "online" ? "Online" : "Physical"}</span>
+                <button
+                  type="button"
+                  className="pill pill-info"
+                  onClick={toggleMode}
+                  style={{
+                    cursor: mode === "manage" ? "pointer" : "default",
+                    border: 0,
+                    font: "inherit",
+                    fontFamily: "var(--sans)",
+                    fontSize: "11.5px",
+                    fontWeight: 500,
+                    padding: "2px 9px",
+                  }}
+                  title={mode === "manage" ? "Tap to switch mode" : "Switch to Manage to change"}
+                >
+                  {s.mode === "online" ? "Online" : "Physical"}
+                </button>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

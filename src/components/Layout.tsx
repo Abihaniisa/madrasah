@@ -34,7 +34,7 @@ export function PublicNav() {
     <nav className="nav">
       <div className="wrap nav-inner">
         <Link to="/" className="brand">
-          <div className="brand-mark">M</div>
+          <img src="/logo.svg" alt="" className="brand-logo" />
           <div>
             <div className="brand-name">{CONFIG.short}</div>
             <div className="brand-sub">{CONFIG.sub}</div>
@@ -75,7 +75,7 @@ export function PublicFoot() {
         <div className="foot-grid">
           <div className="foot-col">
             <div className="brand" style={{ marginBottom: 8 }}>
-              <div className="brand-mark">M</div>
+              <img src="/logo.svg" alt="" className="brand-logo" />
               <div>
                 <div className="brand-name">{CONFIG.name}</div>
                 <div className="brand-sub">Est. {CONFIG.founded}</div>

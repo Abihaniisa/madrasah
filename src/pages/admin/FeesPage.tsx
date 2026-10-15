@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CONFIG, SECTIONS, ALL_CLASSES } from "../../lib/config";
 import { loadSchool, type SchoolData } from "../../lib/data";
 import { fmtN } from "../../lib/calc";
 import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
-import { supabase } from "../../lib/supabase";
-import { I, waLink } from "../../components/Layout";
 import { AdminTop } from "../../components/AdminTop";
 import { DelayedSkeleton } from "../../components/Skeleton";
+import { I, waLink } from "../../components/Layout";
 
 export default function FeesPage() {
   const ready = useRequireAuth();
+  const nav = useNavigate();
   const [mode, setMode] = useMode();
   const [data, setData] = useState<SchoolData | null>(null);
   const [scope, setScope] = useState<string>("all");
@@ -19,11 +19,11 @@ export default function FeesPage() {
 
   useEffect(() => { loadSchool().then(setData); }, []);
 
-  if (!ready) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Checking access…</div></div></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={ready} rows={5} /></div></div>;
   if (!data) return <div className="body"><div className="wrap"><DelayedSkeleton ready={!!data} rows={5} /></div></div>;
 
   if (inClass) {
-    return <ClassDetail cls={inClass} data={data} onBack={() => setInClass(null)} onRefresh={() => loadSchool().then(setData)} mode={mode} onMode={setMode} />;
+    return <ClassDetail cls={inClass} data={data} onBack={() => setInClass(null)} mode={mode} onMode={setMode} />;
   }
 
   const scopes = [
@@ -88,15 +88,16 @@ export default function FeesPage() {
 }
 
 function ClassDetail({
-  cls, data, onBack, onRefresh, mode, onMode,
+  cls, data, onBack, mode, onMode,
 }: {
   cls: string;
   data: SchoolData;
   onBack: () => void;
-  onRefresh: () => void;
   mode: "view" | "manage";
   onMode: (m: "view" | "manage") => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
   const students = data.students.filter(s => s.class_name === cls);
   const order: Record<string, number> = { unpaid: 0, partial: 1, scholarship: 2, paid: 3 };
   const sorted = [...students].sort((a, b) => {
@@ -113,20 +114,40 @@ function ClassDetail({
     return f && f.status === "paid";
   }).length;
 
-  async function setStatus(sid: string, status: "unpaid" | "partial" | "paid" | "scholarship") {
-    const existing = data.fees.find(x => x.student_id === sid && x.year === CONFIG.regYear);
-    if (existing) {
-      await supabase.from("fees").update({ status }).eq("id", existing.id);
-    } else {
-      await supabase.from("fees").insert({
-        student_id: sid,
-        year: CONFIG.regYear,
-        amount: CONFIG.registrationFee,
-        paid: status === "paid" ? CONFIG.registrationFee : 0,
-        status,
-      });
+  const unpaidStudents = sorted.filter(s => {
+    const f = data.fees.find(x => x.student_id === s.id && x.year === CONFIG.regYear);
+    return f && (f.status === "unpaid" || f.status === "partial");
+  });
+
+  async function copyUnpaidPhones() {
+    const phones = unpaidStudents
+      .map(s => {
+        const raw = s.student_phone || s.guardian_phone || "";
+        const digits = raw.replace(/[^0-9]/g, "");
+        if (!digits) return null;
+        return digits.startsWith("234") ? "+" + digits : digits.startsWith("0") ? "+234" + digits.slice(1) : "+234" + digits;
+      })
+      .filter((p): p is string => !!p);
+    if (phones.length === 0) {
+      alert("No phone numbers available for the unpaid students in this class.");
+      return;
     }
-    onRefresh();
+    const text = phones.join(", ");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // fallback for older browsers
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    }
   }
 
   return (
@@ -136,7 +157,7 @@ function ClassDetail({
         <div className="wrap">
           <div className="crumb">
             <Link to="/admin">Portal</Link><span>/</span>
-            <button onClick={onBack} style={{ color: "inherit", font: "inherit", padding: 0 }}>Fees</button>
+            <button onClick={onBack} style={{ color: "inherit", font: "inherit", padding: 0, background: "none", border: 0, cursor: "pointer" }}>Fees</button>
             <span>/</span>
             <span className="current">{cls}</span>
           </div>
@@ -145,8 +166,22 @@ function ClassDetail({
               <h1>{cls}</h1>
               <p className="sub">{paidCount} paid · {students.length - paidCount} unpaid · {CONFIG.sessionLabel}</p>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={onBack}>{I.back} All classes</button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {unpaidStudents.length > 0 && (
+                <button className="btn btn-secondary btn-sm" onClick={copyUnpaidPhones}>
+                  {copied ? <>{I.check} Copied</> : <>{I.link} Copy unpaid numbers</>}
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={onBack}>{I.back} All classes</button>
+            </div>
           </div>
+
+          {unpaidStudents.length > 0 && (
+            <div className="notice" style={{ marginBottom: 12 }}>
+              Use <strong>Copy unpaid numbers</strong> to copy every unpaid phone number to your clipboard, then paste them into a WhatsApp Broadcast List. WhatsApp does not allow sending a message to many people from a link — a Broadcast List is the correct way.
+            </div>
+          )}
+
           <div className="card" style={{ overflow: "hidden" }}>
             {sorted.map(s => {
               const f = data.fees.find(x => x.student_id === s.id && x.year === CONFIG.regYear);
@@ -157,21 +192,22 @@ function ClassDetail({
               const tone = status === "paid" ? "success" : status === "partial" ? "warning" : status === "scholarship" ? "info" : "danger";
               const label = status === "paid" ? "Paid" : status === "partial" ? "Partial" : status === "scholarship" ? "Scholarship" : "Unpaid";
               const showRemind = status !== "paid" && status !== "scholarship";
+              const phone = (s.student_phone || s.guardian_phone || "").replace(/[^0-9+]/g, "");
               return (
                 <div key={s.id} className="fee-student">
                   <div className="avatar">{(s.name[0] ?? "") + (s.name.split(/\s+/)[1]?.[0] ?? "")}</div>
                   <div style={{ minWidth: 0 }}>
                     <div className="sname">{s.name}</div>
-                    <div className="sid">{s.reg_no}</div>
+                    <div className="sid">{s.reg_no}{phone ? ` · ${phone}` : ""}</div>
                   </div>
                   <div className="num">{fmtN(paid)}<span className="lbl">Paid</span></div>
                   <div className="num" style={{ color: balance > 0 ? "var(--warning)" : undefined }}>{fmtN(balance)}<span className="lbl">Balance</span></div>
                   <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
                     <span className={"pill pill-dot pill-" + tone}>{label}</span>
-                    {showRemind && (
+                    {showRemind && phone && (
                       <a
                         className="btn btn-wa btn-sm"
-                        href={waLink(CONFIG.whatsapp, `As-salamu alaykum. A reminder about the registration fee for ${s.name} (${s.reg_no}).`)}
+                        href={waLink(phone, `As-salamu alaykum. A reminder about the registration fee for ${s.name} (${s.reg_no}).`)}
                         target="_blank" rel="noopener noreferrer"
                       >
                         {I.whatsapp} Remind

@@ -436,3 +436,8 @@ a{color:inherit;text-decoration:none}
   .report-block { page-break-after: always; }
   .report-block:last-of-type { page-break-after: auto; }
 }
+
+/* logo in header */
+.brand-logo{width:44px;height:44px;flex-shrink:0;display:block;object-fit:contain}
+.top .brand-logo{width:34px;height:34px}
+.foot .brand-logo{width:40px;height:40px}
