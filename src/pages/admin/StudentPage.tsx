@@ -5,8 +5,9 @@ import { buildReport, loadSchool, type SchoolData } from "../../lib/data";
 import { fmtN } from "../../lib/calc";
 import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
-import { I, waLink } from "../../components/Layout";
 import { AdminTop } from "../../components/AdminTop";
+import { I, waLink } from "../../components/Layout";
+import { DelayedSkeleton } from "../../components/Skeleton";
 
 export default function StudentPage() {
   const ready = useRequireAuth();
@@ -16,8 +17,8 @@ export default function StudentPage() {
 
   useEffect(() => { loadSchool().then(setData); }, []);
 
-  if (!ready) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Checking access…</div></div></div></div>;
-  if (!data) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Loading…</div></div></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={ready} rows={5} /></div></div>;
+  if (!data) return <div className="body"><div className="wrap"><DelayedSkeleton ready={!!data} rows={5} /></div></div>;
 
   const s = data.students.find(x => x.id === id);
   if (!s) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Student not found</div></div></div></div>;
@@ -25,6 +26,8 @@ export default function StudentPage() {
   const sec = SECTIONS.find(x => x.id === s.section);
   const report = buildReport(s, data.assessments, data.marks, data.exams);
   const fee = data.fees.find(f => f.student_id === s.id && f.year === CONFIG.regYear);
+
+  const phoneForRemind = (s.student_phone || s.guardian_phone || "").replace(/[^0-9+]/g, "");
 
   return (
     <div>
@@ -39,10 +42,6 @@ export default function StudentPage() {
             <span className="current">{s.name}</span>
           </div>
 
-          <Link className="btn btn-ghost btn-sm mb3" to={`/admin/class/${encodeURIComponent(s.class_name)}`}>
-            {I.back} Back to class
-          </Link>
-
           <div className="ph">
             <div className="pav">{(s.name[0] ?? "") + (s.name.split(/\s+/)[1]?.[0] ?? "")}</div>
             <div className="pinfo">
@@ -50,15 +49,25 @@ export default function StudentPage() {
               <div className="pmeta">
                 <span>Registration <strong>{s.reg_no}</strong></span>
                 <span>Class <strong>{s.class_name}</strong></span>
-                <span>Mode <strong>{s.mode === "online" ? "Online" : "Physical"}</strong></span>
+                {s.nin && <span>NIN <strong className="mono">{"•".repeat(7) + s.nin.slice(-4)}</strong></span>}
               </div>
-              {report.pending
-                ? <span className="pill pill-warning pill-dot">Provisional</span>
-                : <span className="pill pill-success pill-dot">Complete</span>}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {report.pending
+                  ? <span className="pill pill-warning pill-dot">Provisional</span>
+                  : <span className="pill pill-success pill-dot">Complete</span>}
+                <span className="pill pill-info">{s.mode === "online" ? "Online" : "Physical"}</span>
+              </div>
             </div>
-            <Link className="btn btn-secondary btn-sm" to={`/admin/report/${s.id}`}>
-              {I.print} Report
-            </Link>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {mode === "manage" && (
+                <Link className="btn btn-secondary btn-sm" to={`/admin/student/${s.id}/edit`}>
+                  {I.plus} Edit
+                </Link>
+              )}
+              <Link className="btn btn-secondary btn-sm" to={`/admin/report/${s.id}`}>
+                {I.print} Reports
+              </Link>
+            </div>
           </div>
 
           <div className="card mb4" style={{ overflow: "hidden" }}>
@@ -91,7 +100,7 @@ export default function StudentPage() {
               </table>
               <div className="summary">
                 <div className="it"><div className="l">Semester</div><div className="v">{report.avg != null ? report.avg + "%" : "—"}</div></div>
-                <div className="it"><div className="l">Cumulative</div><div className="v">{report.cumulative != null ? report.cumulative + "%" : "—"}</div></div>
+                <div className="it"><div className="l">Section</div><div className="v">{report.cumulative != null ? report.cumulative + "%" : "—"}</div></div>
                 <div className="it"><div className="l">Grade</div><div className="v" style={{ fontSize: 15 }}>{report.results[0]?.grade.label ?? "—"}</div></div>
               </div>
               {report.pending && (
@@ -120,10 +129,10 @@ export default function StudentPage() {
                        fee.status === "partial" ? "Partial" :
                        fee.status === "scholarship" ? "Scholarship" : "Unpaid"}
                     </span>
-                    {fee.status !== "paid" && fee.status !== "scholarship" && (
+                    {fee.status !== "paid" && fee.status !== "scholarship" && phoneForRemind && (
                       <a
                         className="btn btn-wa btn-sm"
-                        href={waLink(CONFIG.whatsapp, `As-salamu alaykum. A reminder about the registration fee for ${s.name} (${s.reg_no}).`)}
+                        href={waLink(phoneForRemind, `As-salamu alaykum. A reminder about the registration fee for ${s.name} (${s.reg_no}).`)}
                         target="_blank" rel="noopener noreferrer"
                       >
                         {I.whatsapp} Remind

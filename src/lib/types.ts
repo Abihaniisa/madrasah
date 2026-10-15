@@ -13,8 +13,15 @@ export type Student = {
   section: string;
   class_name: string;
   mode: "online" | "physical";
-  status: "active" | "repeating" | "withdrawn" | "transferred";
+  status: "active" | "repeating" | "withdrawn" | "transferred" | "graduated";
   joined: string;
+  dob?: string | null;
+  gender?: "male" | "female" | null;
+  nin?: string | null;
+  guardian_name?: string | null;
+  guardian_phone?: string | null;
+  student_phone?: string | null;
+  address?: string | null;
 };
 
 export type Assessment = {

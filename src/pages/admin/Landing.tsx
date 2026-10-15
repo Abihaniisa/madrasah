@@ -6,6 +6,7 @@ import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I } from "../../components/Layout";
+import { DelayedSkeleton } from "../../components/Skeleton";
 
 export default function Landing() {
   const ready = useRequireAuth();
@@ -25,15 +26,16 @@ export default function Landing() {
     if (!data || !q.trim()) return null;
     const needle = q.toLowerCase().trim();
     return data.students
-      .filter(s =>
-        s.name.toLowerCase().includes(needle) ||
-        s.reg_no.toLowerCase().includes(needle) ||
-        s.class_name.toLowerCase().includes(needle)
-      )
+      .filter(s => {
+        const nameMatch = s.name.toLowerCase().includes(needle);
+        const regMatch = s.reg_no.toLowerCase().includes(needle);
+        const ninMatch = s.nin ? s.nin.startsWith(needle) : false;
+        return nameMatch || regMatch || ninMatch;
+      })
       .slice(0, 40);
   }, [data, q]);
 
-  if (!ready) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Checking access…</div></div></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={ready} rows={5} /></div></div>;
 
   return (
     <div>
@@ -45,14 +47,21 @@ export default function Landing() {
               <h1>Students</h1>
               <p className="sub">Browse by section and class, or search directly.</p>
             </div>
-            <div className="search">
-              <span className="icon">{I.search}</span>
-              <input
-                placeholder="Search by name, registration, or class"
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                autoComplete="off"
-              />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="search">
+                <span className="icon">{I.search}</span>
+                <input
+                  placeholder="Search by name, registration, or NIN"
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              {mode === "manage" && (
+                <Link to="/admin/student/new" className="btn btn-primary btn-sm">
+                  {I.plus} Add student
+                </Link>
+              )}
             </div>
           </div>
 
@@ -75,7 +84,7 @@ export default function Landing() {
               {matches.length === 0 ? (
                 <div className="empty">
                   <div className="t">No matches</div>
-                  <div className="d">Try a different name, registration number, or class.</div>
+                  <div className="d">Try a different name, registration number, or NIN.</div>
                 </div>
               ) : (
                 matches.map(s => (
@@ -136,9 +145,7 @@ export default function Landing() {
             </div>
           )}
 
-          {!q && !data && (
-            <div className="card"><div className="empty"><div className="t">Loading…</div></div></div>
-          )}
+          {!q && !data && <DelayedSkeleton ready={!!data} rows={5} />}
         </div>
       </div>
     </div>
