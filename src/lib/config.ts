@@ -15,10 +15,9 @@ export const CONFIG = {
   examWeight: 0.70,
   regYear: "2026",
   registrationFee: 5000,
-  sessionLabel: "2025/2026",
+  sessionLabel: "2026/2027",
   semesterLabel: "Semester 1",
-  sessionStartISO: "2026-11-02",
-  semesterWeeks: 18,
+  studentLoginEnabled: true,
   builder: {
     name: "Abihani Isa",
     fullName: "Isa Yahya Bayero",
@@ -30,46 +29,48 @@ export const CONFIG = {
     regNo: "2026-MS-0001",
   },
   grades: [
-    { min: 75, label: "Distinction", tone: "success" },
-    { min: 60, label: "Merit",       tone: "primary" },
-    { min: 50, label: "Pass",        tone: "info"    },
-    { min: 0,  label: "Fail",  tone: "danger"  },
+    { min: 75, label: "Distinction", tone: "success", code: "A" },
+    { min: 60, label: "Credit",      tone: "primary", code: "B" },
+    { min: 50, label: "Pass",        tone: "info",    code: "C" },
+    { min: 0,  label: "Fail",        tone: "danger",  code: "D" },
   ],
   subjects: ["Qur'an", "Hadith", "Fiqh", "Arabic", "Tajweed"],
+  calendar: {
+    /* First session starts on the first Saturday that is day 7 or later after Eid al-Fitr.
+       Eid al-Fitr 1447 AH approx 2026-03-20 (Friday).
+       Next Saturday = 2026-03-21 (day 2) → less than 7 → wait one week.
+       Session 1 start = 2026-03-28 (Saturday, day 9).
+       Change only this date per new session. */
+    sessionStart: "2026-03-28",
+    /* Ramadan floats ~11 days earlier each year.
+       Update this one line per year. */
+    ramadanStart: "2027-02-20",
+    blocks: [
+      { type: "teaching", weeks: 18, label: "First Semester" },
+      { type: "exam",     weeks: 1,  label: "First Semester Exam" },
+      { type: "holiday",  weeks: 1,  label: "First Semester Break" },
+      { type: "teaching", weeks: 18, label: "Second Semester" },
+      { type: "exam",     weeks: 1,  label: "Second Semester Exam" },
+      { type: "holiday",  weeks: 1,  label: "Second Semester Break" },
+      { type: "daura",    weeks: 6,  label: "Daura" },
+      { type: "holiday",  weeks: 1,  label: "Post-Daura Holiday" },
+      { type: "ramadan",  weeks: 5,  label: "Ramadan" },
+    ] as const,
+  },
 };
 
 export const SECTIONS: Section[] = [
   { id: "foundation", name: "Foundation", classes: ["Tamhid", "I'idad"], desc: "Reading, writing, and Qur'anic foundations." },
-  { id: "secondary", name: "Secondary", classes: ["Thanawiyyah 1","Thanawiyyah 2","Thanawiyyah 3","Thanawiyyah 4","Thanawiyyah 5","Thanawiyyah 6"], desc: "Six years of structured study." },
-  { id: "higher", name: "Higher", classes: ["Aliyyah 1","Aliyyah 2","Aliyyah 3","Aliyyah 4"], desc: "Advanced study. Opening when the school authorises it.", inactive: true },
+  { id: "secondary",  name: "Secondary",  classes: ["Thanawiyyah 1","Thanawiyyah 2","Thanawiyyah 3","Thanawiyyah 4","Thanawiyyah 5","Thanawiyyah 6"], desc: "Six years of structured study." },
+  { id: "higher",     name: "Higher",     classes: ["Aliyyah 1","Aliyyah 2","Aliyyah 3","Aliyyah 4"], desc: "Advanced study. Opening when the school authorises it.", inactive: true },
 ];
 
 export const ALL_CLASSES = SECTIONS.filter(s => !s.inactive).flatMap(s => s.classes);
 
-export const CALENDAR = (() => {
-  const start = new Date(CONFIG.sessionStartISO + "T00:00:00Z");
-  const blocks = [
-    { label: "First semester", kind: "teaching", from: 1, to: 18 },
-    { label: "First semester exam", kind: "exam", from: 19, to: 19 },
-    { label: "First semester holiday", kind: "holiday", from: 20, to: 20 },
-    { label: "Second semester", kind: "teaching", from: 21, to: 38 },
-    { label: "Second semester exam", kind: "exam", from: 39, to: 39 },
-    { label: "Second semester holiday", kind: "holiday", from: 40, to: 40 },
-    { label: "Daura", kind: "daura", from: 41, to: 46 },
-    { label: "Post-Daura holiday", kind: "holiday", from: 47, to: 48 },
-    { label: "Flexible", kind: "flexible", from: 49, to: 52 },
-  ] as const;
-  const weekDate = (weekNum: number) => {
-    const d = new Date(start);
-    d.setUTCDate(d.getUTCDate() + (weekNum - 1) * 7);
-    return d;
-  };
-  return { blocks, weekDate };
-})();
-
-export function formatWeekDate(weekNum: number): string {
-  const d = CALENDAR.weekDate(weekNum);
-  const day = d.getUTCDate();
-  const month = d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-  return `${day} ${month}`;
-}
+/* Transcript grouping — every section is grouped into one or more transcripts. */
+export const TRANSCRIPT_GROUPS: Record<string, string[]> = {
+  "Foundation":         ["Tamhid", "I'idad"],
+  "Junior Secondary":   ["Thanawiyyah 1", "Thanawiyyah 2", "Thanawiyyah 3"],
+  "Senior Secondary":   ["Thanawiyyah 4", "Thanawiyyah 5", "Thanawiyyah 6"],
+  "Higher":             ["Aliyyah 1", "Aliyyah 2", "Aliyyah 3", "Aliyyah 4"],
+};

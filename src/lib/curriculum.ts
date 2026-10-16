@@ -6,16 +6,23 @@ export type CurriculumEntry = {
 
 const SUBJECTS = ["Qur'an", "Tajweed", "Hadith", "Fiqh", "Arabic"];
 
-function blank(): { semester1: Record<string, string[]>; semester2: Record<string, string[]> } {
-  const s1: Record<string, string[]> = {};
-  const s2: Record<string, string[]> = {};
+function placeholders(): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
   for (const s of SUBJECTS) {
-    s1[s] = Array.from({ length: 20 }, (_, i) => `Week ${i + 1}`);
-    s2[s] = Array.from({ length: 20 }, (_, i) => `Week ${i + 1}`);
+    out[s] = Array.from({ length: 18 }, (_, i) => `Topics to be treated in Week ${i + 1}`);
   }
-  return { semester1: s1, semester2: s2 };
+  return out;
 }
 
+function make(overview: string, quranS1?: string[], quranS2?: string[]): CurriculumEntry {
+  const semester1 = placeholders();
+  const semester2 = placeholders();
+  if (quranS1) semester1["Qur'an"] = quranS1;
+  if (quranS2) semester2["Qur'an"] = quranS2;
+  return { overview, semester1, semester2 };
+}
+
+/* Thanawiyyah 1 — Qur'an real schedule (18 weeks each semester). */
 const T1_QURAN_S1 = [
   "An-Nas (114), Al-Falaq (113), Al-Ikhlas (112), Al-Masad (111)",
   "An-Nasr (110), Al-Kafirun (109), Al-Kawthar (108)",
@@ -35,18 +42,16 @@ const T1_QURAN_S1 = [
   "Nuh (71), Al-Ma'arij (70)",
   "Al-Haqqah (69), Al-Qalam (68)",
   "Al-Mulk (67), At-Tahrim (66)",
-  "At-Talaq (65), At-Taghabun (64)",
-  "Al-Munafiqun (63), Al-Jumu'ah (62)",
 ];
 
 const T1_QURAN_S2 = [
+  "At-Talaq (65), At-Taghabun (64)",
+  "Al-Munafiqun (63), Al-Jumu'ah (62)",
   "As-Saff (61), Al-Mumtahanah (60)",
   "Al-Hashr (59)",
   "Al-Mujadilah (58)",
-  "Al-Mujadilah (58) continued",
   "Al-Hadid (57)",
   "Al-Waqi'ah (56)",
-  "Al-Waqi'ah (56) continued",
   "Ar-Rahman (55)",
   "Al-Qamar (54)",
   "An-Najm (53)",
@@ -54,49 +59,22 @@ const T1_QURAN_S2 = [
   "Adh-Dhariyat (51)",
   "Qaf (50)",
   "Al-Hujurat (49)",
-  "Al-Hujurat (49) continued",
   "Al-Fath (48)",
   "Muhammad (47)",
-  "Muhammad (47) continued",
   "Al-Ahqaf (46)",
-  "Al-Ahqaf (46) continued",
+  "Al-Jathiyah (45)",
 ];
 
-const t1 = blank();
-t1.semester1["Qur'an"] = T1_QURAN_S1;
-t1.semester2["Qur'an"] = T1_QURAN_S2;
-
 export const CURRICULUM: Record<string, CurriculumEntry> = {
-  "Tamhid": {
-    overview: "3 Hizb Qur'an · Miftahul Arabiyyah · Hisnul Muslim (selected)",
-    ...blank(),
-  },
-  "I'idad": {
-    overview: "3 Hizb Qur'an (Juz 30) · Heavy Miftahul Arabiyyah · Khamsuna Hadith",
-    ...blank(),
-  },
-  "Thanawiyyah 1": {
-    overview: "9 Hizb Qur'an · Al-Ashmawiyyah · Miatu Hadith · Nahw al-Wadih Primary 1 · Tajweed",
-    ...t1,
-  },
-  "Thanawiyyah 2": {
-    overview: "9 Hizb Qur'an · Al-Akhdari · An-Nawawi's Forty · Nahw al-Wadih Primary 2 · Tajweed",
-    ...blank(),
-  },
-  "Thanawiyyah 3": {
-    overview: "9 Hizb Qur'an · Risalah (1st) · Umdatul Ahkam (1st) · Nahw al-Wadih Primary 3 · Tajweed",
-    ...blank(),
-  },
-  "Thanawiyyah 4": {
-    overview: "9 Hizb Qur'an · Risalah (2nd) · Umdatul Ahkam (2nd) · Nahw al-Wadih Secondary 1 · Tajweed",
-    ...blank(),
-  },
-  "Thanawiyyah 5": {
-    overview: "9 Hizb Qur'an · Risalah (3rd) · Umdatul Ahkam (3rd) · Nahw al-Wadih Secondary 2 · Tajweed",
-    ...blank(),
-  },
-  "Thanawiyyah 6": {
-    overview: "9 Hizb Qur'an · Risalah revision · Umdatul Ahkam revision · Nahw al-Wadih Secondary 3 · Tajweed",
-    ...blank(),
-  },
+  "Tamhid": make("3 Hizb Qur'an · Miftahul Arabiyyah · Hisnul Muslim (selected)"),
+  "I'idad": make("3 Hizb Qur'an (Juz 30) · Heavy Miftahul Arabiyyah · Khamsuna Hadith"),
+  "Thanawiyyah 1": make(
+    "9 Hizb Qur'an · Al-Ashmawiyyah · Miatu Hadith · Nahw al-Wadih Primary 1 · Tajweed",
+    T1_QURAN_S1, T1_QURAN_S2
+  ),
+  "Thanawiyyah 2": make("9 Hizb Qur'an · Al-Akhdari · An-Nawawi's Forty · Nahw al-Wadih Primary 2 · Tajweed"),
+  "Thanawiyyah 3": make("9 Hizb Qur'an · Risalah (1st) · Umdatul Ahkam (1st) · Nahw al-Wadih Primary 3 · Tajweed"),
+  "Thanawiyyah 4": make("9 Hizb Qur'an · Risalah (2nd) · Umdatul Ahkam (2nd) · Nahw al-Wadih Secondary 1 · Tajweed"),
+  "Thanawiyyah 5": make("9 Hizb Qur'an · Risalah (3rd) · Umdatul Ahkam (3rd) · Nahw al-Wadih Secondary 2 · Tajweed"),
+  "Thanawiyyah 6": make("9 Hizb Qur'an · Risalah revision · Umdatul Ahkam revision · Nahw al-Wadih Secondary 3 · Tajweed"),
 };

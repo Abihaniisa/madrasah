@@ -1,26 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { SECTIONS } from "../../lib/config";
 import { classAverage, loadSchool, type SchoolData } from "../../lib/data";
 import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I } from "../../components/Layout";
-import { DelayedSkeleton } from "../../components/Skeleton";
 
 export default function Landing() {
   const ready = useRequireAuth();
-  const nav = useNavigate();
   const [mode, setMode] = useMode();
   const [data, setData] = useState<SchoolData | null>(null);
   const [q, setQ] = useState("");
-  const [recent, setRecent] = useState<{ cls: string; subject: string } | null>(null);
 
-  useEffect(() => {
-    loadSchool().then(setData);
-    const r = localStorage.getItem("madrasah.recent");
-    if (r) setRecent(JSON.parse(r));
-  }, []);
+  useEffect(() => { loadSchool().then(setData); }, []);
 
   const matches = useMemo(() => {
     if (!data || !q.trim()) return null;
@@ -35,7 +28,7 @@ export default function Landing() {
       .slice(0, 40);
   }, [data, q]);
 
-  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={ready} rows={5} /></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
 
   return (
     <div>
@@ -50,12 +43,7 @@ export default function Landing() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <div className="search">
                 <span className="icon">{I.search}</span>
-                <input
-                  placeholder="Search by name, registration, or NIN"
-                  value={q}
-                  onChange={e => setQ(e.target.value)}
-                  autoComplete="off"
-                />
+                <input placeholder="Search by name, NIN, or Reg. No." value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
               </div>
               {mode === "manage" && (
                 <Link to="/admin/student/new" className="btn btn-primary btn-sm">
@@ -65,26 +53,12 @@ export default function Landing() {
             </div>
           </div>
 
-          {recent && !q && (
-            <button
-              className="recent"
-              style={{ width: "100%", textAlign: "left" }}
-              onClick={() => nav(`/admin/class/${encodeURIComponent(recent.cls)}`)}
-            >
-              <div className="icon-wrap">▸</div>
-              <div className="txt">
-                <div className="l">Continue</div>
-                <div className="v">{recent.cls} · {recent.subject}</div>
-              </div>
-            </button>
-          )}
-
           {matches && (
             <div className="slist" style={{ marginTop: 8 }}>
               {matches.length === 0 ? (
                 <div className="empty">
                   <div className="t">No matches</div>
-                  <div className="d">Try a different name, registration number, or NIN.</div>
+                  <div className="d">Try a different name, NIN, or Reg. No.</div>
                 </div>
               ) : (
                 matches.map(s => (
@@ -144,8 +118,6 @@ export default function Landing() {
               })}
             </div>
           )}
-
-          {!q && !data && <DelayedSkeleton ready={!!data} rows={5} />}
         </div>
       </div>
     </div>

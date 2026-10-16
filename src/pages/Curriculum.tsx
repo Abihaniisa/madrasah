@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CONFIG, SECTIONS, formatWeekDate } from "../lib/config";
+import { CONFIG, SECTIONS } from "../lib/config";
 import { CURRICULUM } from "../lib/curriculum";
+import { allWeeks, formatRange, type Week } from "../lib/calendar";
 import { PublicLayout, I } from "../components/Layout";
 
 export default function Curriculum() {
@@ -14,9 +15,7 @@ export default function Curriculum() {
           <div className="section-head">
             <span className="eyebrow">Curriculum</span>
             <h1 className="d1">Every class has a defined path.</h1>
-            <p className="lede">
-              Each class follows a documented syllabus across five subjects. Tap a class to see its weekly breakdown.
-            </p>
+            <p className="lede">Five subjects per class. Tap a class to see its weekly breakdown.</p>
           </div>
 
           {SECTIONS.map(sec => (
@@ -58,7 +57,7 @@ export default function Curriculum() {
           <div className="card pad mt6">
             <span className="eyebrow">Provisional</span>
             <p className="sub" style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.6 }}>
-              Weekly breakdowns are being finalised class by class. Dates are computed from the session start date and shift automatically.
+              Weekly breakdowns are being finalised. Dates shift with the session start date.
             </p>
           </div>
         </div>
@@ -74,9 +73,12 @@ function ClassDetail({ cls, onBack }: { cls: string; onBack: () => void }) {
   if (!entry) return null;
 
   const data = semester === 1 ? entry.semester1 : entry.semester2;
-  const allSubjects = Object.keys(data);
-  const subjectsToShow = subject === "All" ? allSubjects : [subject];
-  const weeks = Array.from({ length: 20 }, (_, i) => i + 1);
+  const subjects = Object.keys(data);
+  const subjectsToShow = subject === "All" ? subjects : [subject];
+
+  const teachingWeeks: Week[] = allWeeks().filter(
+    w => w.blockType === "teaching" && w.semester === semester
+  );
 
   return (
     <PublicLayout>
@@ -103,7 +105,7 @@ function ClassDetail({ cls, onBack }: { cls: string; onBack: () => void }) {
 
           <div className="chip-line no-print" style={{ marginBottom: 18 }}>
             <button className={"chip-f " + (subject === "All" ? "active" : "")} onClick={() => setSubject("All")}>All subjects</button>
-            {allSubjects.map(s => (
+            {subjects.map(s => (
               <button key={s} className={"chip-f " + (subject === s ? "active" : "")} onClick={() => setSubject(s)}>{s}</button>
             ))}
           </div>
@@ -120,18 +122,18 @@ function ClassDetail({ cls, onBack }: { cls: string; onBack: () => void }) {
                 </div>
               </div>
               <div style={{ padding: "4px 18px 14px" }}>
-                {weeks.map(w => {
-                  const content = (data[subj] || [])[w - 1] || "";
+                {teachingWeeks.map((wk, i) => {
+                  const content = (data[subj] || [])[i] || "";
                   return (
-                    <div key={w} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+                    <div key={wk.num} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>Week {w}</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>Week {i + 1}</div>
                         <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 1 }}>
-                          {formatWeekDate(w + (semester === 2 ? 20 : 0))}
+                          {formatRange(wk)}
                         </div>
                       </div>
-                      <div style={{ fontSize: 13, color: content ? "var(--ink-2)" : "var(--ink-4)", lineHeight: 1.5 }}>
-                        {content || "—"}
+                      <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
+                        {content}
                       </div>
                     </div>
                   );

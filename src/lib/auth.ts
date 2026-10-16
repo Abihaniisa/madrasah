@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, isAuthorized } from "./supabase";
 
+type CacheState = "unknown" | "authorized" | "denied";
+
 /* Session-scoped cache.
    The auth result does not change between page navigations, so
    check it once and reuse. Cleared by resetAuth() on logout. */
-let cache: "unknown" | "authorized" | "denied" = "unknown";
+let cache: CacheState = "unknown";
 let inflight: Promise<void> | null = null;
 
 async function doCheck() {
@@ -15,10 +17,13 @@ async function doCheck() {
   cache = ok ? "authorized" : "denied";
 }
 
-async function ensureChecked() {
-  if (cache !== "unknown") return;
-  if (!inflight) inflight = doCheck().finally(() => { inflight = null; });
+async function ensureChecked(): Promise<CacheState> {
+  if (cache !== "unknown") return cache;
+  if (!inflight) {
+    inflight = doCheck().finally(() => { inflight = null; });
+  }
   await inflight;
+  return cache;
 }
 
 export function resetAuth() {
@@ -28,16 +33,16 @@ export function resetAuth() {
 
 export function useRequireAuth(): boolean {
   const nav = useNavigate();
-  const [ready, setReady] = useState(cache === "authorized");
+  const [ready, setReady] = useState<boolean>(cache === "authorized");
 
   useEffect(() => {
     if (cache === "authorized") { setReady(true); return; }
     if (cache === "denied") { nav("/login"); return; }
     let cancelled = false;
     (async () => {
-      await ensureChecked();
+      const result = await ensureChecked();
       if (cancelled) return;
-      if (cache === "authorized") setReady(true);
+      if (result === "authorized") setReady(true);
       else nav("/login");
     })();
     return () => { cancelled = true; };
