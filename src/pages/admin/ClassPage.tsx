@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { SECTIONS } from "../../lib/config";
+import { SECTIONS, CONFIG, ALL_CLASSES } from "../../lib/config";
 import { classAverage, buildReport, loadSchool, type SchoolData } from "../../lib/data";
 import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I } from "../../components/Layout";
-import { DelayedSkeleton } from "../../components/Skeleton";
+import { Modal } from "../../components/Modal";
+import { supabase } from "../../lib/supabase";
+import { amISuperAdmin } from "../../lib/access";
 import AssessmentSheet from "../../components/AssessmentSheet";
 import ExamSheet from "../../components/ExamSheet";
 
@@ -17,20 +19,47 @@ export default function ClassPage() {
   const [mode, setMode] = useMode();
   const [data, setData] = useState<SchoolData | null>(null);
   const [sheet, setSheet] = useState<"none" | "assessment" | "exam">("none");
-  const [subject, setSubject] = useState<string | undefined>(undefined);
+  const [isSuper, setIsSuper] = useState(false);
+  const [confirmNewAssessment, setConfirmNewAssessment] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { loadSchool().then(setData); }, []);
+  useEffect(() => {
+    loadSchool().then(setData);
+    amISuperAdmin().then(setIsSuper);
+  }, []);
 
   const sec = SECTIONS.find(s => s.classes.includes(cls));
-
-  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={false} rows={4} /></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
   if (!sec) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Class not found</div></div></div></div>;
 
   const students = data?.students.filter(s => s.class_name === cls) ?? [];
   const avg = data ? classAverage(cls, data.students, data.assessments, data.marks, data.exams) : null;
 
-  function closeSheet() {
-    setSheet("none");
+  async function createAssessment() {
+    setBusy(true);
+    // Determine next number
+    const existing = (data?.assessments ?? []).filter(
+      a => a.class_name === cls && a.semester === 1 && a.session_label === CONFIG.sessionLabel
+    );
+    const numbers = new Set(existing.map(a => {
+      const m = a.label.match(/^Assessment\s+(\d+)$/i);
+      return m ? parseInt(m[1], 10) : 0;
+    }));
+    let next = 1;
+    while (numbers.has(next)) next++;
+    const label = `Assessment ${next}`;
+    // Create one row per subject
+    const rows = CONFIG.subjects.map(subject => ({
+      class_name: cls,
+      subject,
+      label,
+      max_marks: CONFIG.assessmentMax,
+      session_label: CONFIG.sessionLabel,
+      semester: 1,
+    }));
+    await supabase.from("assessments").insert(rows);
+    setBusy(false);
+    setConfirmNewAssessment(false);
     loadSchool().then(setData);
   }
 
@@ -60,23 +89,26 @@ export default function ClassPage() {
               </Link>
               {mode === "manage" && sheet === "none" && (
                 <>
-                  <button className="btn btn-secondary btn-sm" onClick={() => { setSubject(undefined); setSheet("assessment"); }}>
-                    {I.plus} Enter marks
+                  {isSuper && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setConfirmNewAssessment(true)}>
+                      {I.plus} New Assessment
+                    </button>
+                  )}
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSheet("assessment")}>
+                    Enter marks
                   </button>
-                  <button className="btn btn-primary btn-sm" onClick={() => { setSubject(undefined); setSheet("exam"); }}>
-                    {I.plus} Enter exam marks
+                  <button className="btn btn-primary btn-sm" onClick={() => setSheet("exam")}>
+                    Enter exam
                   </button>
                 </>
               )}
             </div>
           </div>
 
-          {!data ? (
-            <DelayedSkeleton ready={!!data} rows={6} />
-          ) : sheet === "assessment" ? (
-            <AssessmentSheet cls={cls} students={students} initialSubject={subject} onClose={closeSheet} />
+          {sheet === "assessment" ? (
+            <AssessmentSheet cls={cls} students={students} onClose={() => { setSheet("none"); loadSchool().then(setData); }} />
           ) : sheet === "exam" ? (
-            <ExamSheet cls={cls} students={students} initialSubject={subject} onClose={closeSheet} />
+            <ExamSheet cls={cls} students={students} onClose={() => { setSheet("none"); loadSchool().then(setData); }} />
           ) : students.length === 0 ? (
             <div className="card"><div className="empty"><div className="t">No students in this class</div></div></div>
           ) : (
@@ -97,7 +129,7 @@ export default function ClassPage() {
                         <div className="name">{s.name}</div>
                         <div className="id">{s.reg_no}</div>
                       </div>
-                      <div className="stat-mini">{r?.avg != null ? r.avg + "%" : "—"}</div>
+                      <div className="stat-mini">{r?.pending ? "Pending" : r?.avg != null ? r.avg + "%" : "—"}</div>
                       <div style={{ color: "var(--ink-4)" }}>{I.arrow}</div>
                     </Link>
                   );
@@ -106,6 +138,15 @@ export default function ClassPage() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={confirmNewAssessment}
+        title="Create new assessment?"
+        message={`This creates the next Assessment for all ${CONFIG.subjects.length} subjects in ${cls}. Teachers will then fill in marks for their subject.`}
+        confirmLabel={busy ? "Creating…" : "Create"}
+        onConfirm={createAssessment}
+        onCancel={() => setConfirmNewAssessment(false)}
+      />
     </div>
   );
 }

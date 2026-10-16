@@ -2,32 +2,34 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { CONFIG } from "../lib/config";
 import { amISuperAdmin } from "../lib/access";
+import { Modal } from "./Modal";
 import type { Assessment, Mark, Student } from "../lib/types";
 
-type Props = {
+export default function AssessmentSheet({
+  cls, students, onClose,
+}: {
   cls: string;
   students: Student[];
-  initialSubject?: string;
   onClose: () => void;
-};
-
-export default function AssessmentSheet({ cls, students, initialSubject, onClose }: Props) {
-  const [subject, setSubject] = useState<string>(initialSubject || CONFIG.subjects[0]);
+}) {
+  const [subject, setSubject] = useState<string>(CONFIG.subjects[0]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [marks, setMarks] = useState<Record<string, number | null>>({});
   const [ready, setReady] = useState(false);
   const [isSuper, setIsSuper] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => { amISuperAdmin().then(setIsSuper); }, []);
 
   async function load() {
     setReady(false);
     const { data } = await supabase
-      .from("assessments")
-      .select("*")
+      .from("assessments").select("*")
       .eq("class_name", cls)
       .eq("subject", subject)
+      .eq("session_label", CONFIG.sessionLabel)
+      .eq("semester", 1)
       .order("created_at");
     const list = (data as Assessment[]) ?? [];
     setAssessments(list);
@@ -57,38 +59,14 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
   const sorted = useMemo(() => [...students].sort((a, b) => a.name.localeCompare(b.name)), [students]);
   const recordedCount = useMemo(() => sorted.filter(s => marks[s.id] != null).length, [sorted, marks]);
 
-  async function addNew() {
-    const label = "Assessment " + (assessments.length + 1);
-    const { data, error } = await supabase
-      .from("assessments")
-      .insert({
-        class_name: cls,
-        subject,
-        label,
-        max_marks: CONFIG.assessmentMax,
-        session_label: CONFIG.sessionLabel,
-        semester: 1,
-      })
-      .select()
-      .single();
-    if (error || !data) return;
-    const a = data as Assessment;
-    setAssessments(prev => [...prev, a]);
-    setActiveId(a.id);
-    setMarks({});
-  }
-
-  async function deleteActive() {
+  async function deleteCurrent() {
     if (!active || !isSuper) return;
-    const ok = window.confirm(
-      `Delete "${active.label}" for ${cls} — ${subject}?\n\nThis will permanently remove all ${sorted.length} student marks recorded for this assessment.`
-    );
-    if (!ok) return;
     await supabase.from("assessments").delete().eq("id", active.id);
+    setConfirmDelete(false);
     await load();
   }
 
-  async function commitMark(sid: string, value: number | null) {
+  async function commit(sid: string, value: number | null) {
     if (!active) return;
     await supabase.from("marks").upsert(
       { assessment_id: active.id, student_id: sid, value },
@@ -105,7 +83,7 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
   }
 
   async function onBlur(sid: string) {
-    await commitMark(sid, marks[sid] ?? null);
+    await commit(sid, marks[sid] ?? null);
   }
 
   function jump() {
@@ -120,9 +98,7 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
     });
   }
 
-  if (!ready && assessments.length === 0) {
-    return <div className="asheet"><div className="empty"><div className="t">Loading…</div></div></div>;
-  }
+  if (!ready && assessments.length === 0) return <div className="asheet"><div className="empty"><div className="t">Loading…</div></div></div>;
 
   if (!active) {
     return (
@@ -136,10 +112,7 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
         </div>
         <div className="empty" style={{ padding: "44px 20px" }}>
           <div className="t">No assessments yet</div>
-          <div className="d" style={{ marginBottom: 14 }}>
-            Create the first assessment for {subject} — {cls}. Marks are out of {CONFIG.assessmentMax}.
-          </div>
-          <button className="btn btn-primary" onClick={addNew}>Create Assessment 1</button>
+          <div className="d">Ask the school office to create the next assessment for this class.</div>
         </div>
         <div className="asheet-foot">
           <div />
@@ -158,29 +131,12 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
               {CONFIG.subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             {assessments.map(a => (
-              <button
-                key={a.id}
-                className={"chip-a " + (a.id === activeId ? "active" : "")}
-                onClick={() => loadMarksFor(a.id)}
-              >
+              <button key={a.id} className={"chip-a " + (a.id === activeId ? "active" : "")} onClick={() => loadMarksFor(a.id)}>
                 {a.label}
               </button>
             ))}
-            <button className="chip-a add" onClick={addNew}>+ New</button>
-            {isSuper && (
-              <button
-                className="chip-a"
-                onClick={deleteActive}
-                title="Delete this assessment"
-                style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
-              >
-                Delete
-              </button>
-            )}
           </div>
-          <div className="sub" style={{ fontSize: 12, marginLeft: "auto" }}>
-            Out of <strong>{active.max_marks}</strong>
-          </div>
+          <div className="sub" style={{ fontSize: 12, marginLeft: "auto" }}>Out of <strong>{active.max_marks}</strong></div>
         </div>
       </div>
 
@@ -204,12 +160,8 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
                 <div className="sid">{s.reg_no}</div>
               </div>
               <input
-                className="mark"
-                type="text"
-                inputMode="numeric"
-                maxLength={3}
-                value={v == null ? "" : String(v)}
-                placeholder="—"
+                className="mark" type="text" inputMode="numeric" maxLength={3}
+                value={v == null ? "" : String(v)} placeholder="—"
                 onChange={e => onInput(s.id, e.target.value)}
                 onBlur={() => onBlur(s.id)}
                 onFocus={e => e.currentTarget.select()}
@@ -221,8 +173,21 @@ export default function AssessmentSheet({ cls, students, initialSubject, onClose
 
       <div className="asheet-foot">
         <div className="sub" style={{ fontSize: 12 }}>Marks save as you type.</div>
-        <button className="btn btn-primary btn-sm" onClick={onClose}>Done</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {isSuper && <button className="btn btn-ghost btn-sm" style={{ color: "var(--danger)" }} onClick={() => setConfirmDelete(true)}>Delete</button>}
+          <button className="btn btn-primary btn-sm" onClick={onClose}>Done</button>
+        </div>
       </div>
+
+      <Modal
+        open={confirmDelete}
+        title="Delete this assessment?"
+        message={active ? `${active.label} for ${cls} — ${subject} will be removed, along with ${sorted.length} marks.` : ""}
+        confirmLabel="Delete"
+        tone="danger"
+        onConfirm={deleteCurrent}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

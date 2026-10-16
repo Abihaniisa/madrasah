@@ -77,7 +77,7 @@ export type Material = {
   created_at: string;
 };
 
-export type Grade = { min: number; label: string; tone: string };
+export type Grade = { min: number; label: string; tone: string; code: string };
 
 export type SubjectResult = {
   subject: string;

@@ -39,25 +39,24 @@ export async function loadMaterials(publishedOnly = true): Promise<Material[]> {
   return (data as Material[]) ?? [];
 }
 
+export type FullReport = {
+  results: (SubjectResult & { pending: boolean })[];
+  avg: number | null;
+  cumulative: number | null;
+  cumulativeBySubject: Record<string, number | null>;
+  semesters: SemesterGroup[];
+  pending: boolean;
+};
+
 export function buildReport(
   student: Student,
   assessments: Assessment[],
   marks: Mark[],
   exams: Exam[],
   semester = 1
-): {
-  results: SubjectResult[];
-  avg: number | null;
-  cumulative: number | null;
-  cumulativeBySubject: Record<string, number | null>;
-  semesters: SemesterGroup[];
-  pending: boolean;
-} {
-  const classAssess = assessments.filter(
-    a => a.class_name === student.class_name && a.semester === semester
-  );
+): FullReport {
+  const classAssess = assessments.filter(a => a.class_name === student.class_name && a.semester === semester);
   const studentExams = exams.filter(e => e.student_id === student.id && e.semester === semester);
-
   const results = CONFIG.subjects.map(subject => {
     const marksByAssess: Record<string, number | null> = {};
     for (const a of classAssess.filter(x => x.subject === subject)) {
@@ -67,9 +66,7 @@ export function buildReport(
     const examRow = studentExams.find(e => e.subject === subject);
     return subjectResult(subject, classAssess, marksByAssess, examRow?.value ?? null);
   });
-
   const semesters = buildAllSemesters(student, assessments, marks, exams);
-
   return {
     results,
     avg: semesterAvg(results),
