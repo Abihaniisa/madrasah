@@ -1058,3 +1058,509 @@ a{color:inherit;text-decoration:none}
   .cert-band > .cell:last-child{border-bottom:none}
   .cert-signs{gap:32px}
 }
+
+/* ============================================================
+   CERTIFICATE — refinements
+   ============================================================ */
+
+/* bigger logo, no shift to title */
+.cert-head-logo{width:78px !important;height:78px !important;margin-bottom:12px !important}
+
+/* header tighter so it fits */
+.cert-head-block{padding-bottom:14px !important;margin-bottom:16px !important}
+.cert-head-title{font-size:26px !important;margin-top:10px !important}
+.cert-head-subtitle{margin-top:5px !important;font-size:11px !important}
+
+/* meta fields inline — label on left, value on right, same line */
+.cert-fields{
+  grid-template-columns:repeat(2,1fr) !important;
+  gap:10px 40px !important;
+  padding-bottom:16px !important;
+  margin-bottom:16px !important;
+}
+.cert-fields > .f{
+  display:flex !important;
+  flex-direction:row !important;
+  justify-content:space-between !important;
+  align-items:baseline !important;
+  gap:14px !important;
+  border-bottom:1px dotted var(--line) !important;
+  padding-bottom:6px !important;
+}
+.cert-fields .fl{
+  font-size:10px !important;
+  letter-spacing:.12em !important;
+  flex-shrink:0 !important;
+}
+.cert-fields .fv{
+  font-size:13.5px !important;
+  text-align:right !important;
+  flex:1 !important;
+  overflow-wrap:break-word !important;
+}
+
+/* data table — every cell has a right border, creating the block grid */
+.cert-data thead th{
+  border-right:1px solid var(--line) !important;
+  border-bottom:1px solid var(--ink-3) !important;
+  padding:8px 10px 10px !important;
+}
+.cert-data thead th:last-child{border-right:none !important}
+.cert-data tbody td{
+  padding:9px 10px !important;
+  border-right:1px solid var(--line) !important;
+  border-bottom:1px solid var(--line) !important;
+}
+.cert-data tbody td:last-child{border-right:none !important}
+.cert-data tbody tr:last-child td{border-bottom:1px solid var(--line) !important}
+
+/* summary band tighter */
+.cert-band{margin-top:18px !important}
+.cert-band > .cell{padding:14px 18px !important}
+.cert-band .cv{font-size:22px !important}
+
+/* signatures tighter */
+.cert-signs{padding-top:26px !important;margin-top:8px !important;gap:50px !important}
+
+/* transcript table grid too */
+.cert-transcript th{border-right:1px solid var(--line) !important;padding:7px 5px !important}
+.cert-transcript td{border-right:1px solid var(--line) !important;padding:8px 5px !important}
+.cert-transcript th:last-child{border-right:none !important}
+.cert-transcript td:last-child{border-right:none !important}
+.cert-transcript th.left,.cert-transcript td.left{border-right:1px solid var(--line) !important}
+
+/* smaller scale line + note if pending */
+.cert-scale{padding:12px 0 0 !important;margin-top:10px !important;font-size:10.5px !important}
+.cert-note{padding:8px 14px !important;font-size:11.5px !important;margin-top:12px !important}
+
+/* ============================================================
+   PRINT — squeeze to one A4 landscape page
+   ============================================================ */
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  .cert-doc{
+    width:280mm !important;
+    min-height:194mm !important;
+    max-height:194mm !important;
+    overflow:hidden !important;
+  }
+  .cert-doc-inner{padding:22px 30px 18px !important}
+  .cert-head-logo{width:64px !important;height:64px !important;margin-bottom:8px !important}
+  .cert-head-block{padding-bottom:10px !important;margin-bottom:12px !important}
+  .cert-head-title{font-size:22px !important;margin-top:6px !important}
+  .cert-head-school{font-size:13px !important}
+  .cert-head-subtitle{font-size:10px !important;margin-top:3px !important}
+  .cert-fields{gap:6px 30px !important;padding-bottom:10px !important;margin-bottom:12px !important}
+  .cert-fields .fv{font-size:12px !important}
+  .cert-fields .fl{font-size:9px !important}
+  .cert-data{font-size:11.5px !important}
+  .cert-data thead th{padding:5px 8px 7px !important;font-size:9.5px !important}
+  .cert-data tbody td{padding:6px 8px !important}
+  .cert-data td.subj{font-size:12.5px !important}
+  .cert-data td.num{font-size:11px !important}
+  .cert-grade{width:22px !important;height:22px !important;font-size:11px !important}
+  .cert-band{margin-top:12px !important}
+  .cert-band .cell{padding:10px 12px !important}
+  .cert-band .cv{font-size:18px !important}
+  .cert-band .cl{font-size:9px !important;margin-bottom:4px !important}
+  .cert-signs{padding-top:18px !important;margin-top:6px !important}
+  .cert-signs .s{font-size:10px !important}
+  .cert-scale{padding:8px 0 0 !important;margin-top:6px !important;font-size:10px !important}
+  .cert-transcript{font-size:10px !important}
+  .cert-transcript th{padding:5px 4px !important;font-size:9px !important}
+  .cert-transcript td{padding:5px 4px !important;font-size:10px !important}
+  .cert-transcript td.left{font-size:11px !important}
+}
+
+@media(max-width:760px){
+  .cert-fields{grid-template-columns:1fr !important;gap:8px !important}
+  .cert-head-logo{width:64px !important;height:64px !important}
+}
+
+/* ============================================================
+   PREMIUM CERTIFICATE v2 — full page, 2-up meta
+   ============================================================ */
+
+.cert-doc{
+  width:100%;
+  max-width:1100px;
+  aspect-ratio:297/210;
+  margin:0 auto;
+  background:#FDFCF8;
+  border:1px solid var(--gold);
+  box-shadow:0 4px 24px rgba(20,30,22,.06);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+.cert-doc::after{
+  content:"";
+  position:absolute;
+  inset:6px;
+  border:0.5px solid var(--gold);
+  pointer-events:none;
+}
+.cert-doc-inner{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:26px 40px 22px;
+  min-height:0;
+}
+
+/* header */
+.cert-head-block{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--line-2);
+  position:relative;
+  flex-shrink:0;
+}
+.cert-head-block::after{
+  content:"";
+  position:absolute;
+  bottom:-1px;
+  left:50%;
+  transform:translateX(-50%);
+  width:90px;
+  height:2px;
+  background:var(--gold);
+}
+.cert-head-logo{width:72px;height:72px;margin-bottom:8px;display:block}
+.cert-head-school{
+  font-family:var(--serif);
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--primary);
+  line-height:1.3;
+}
+.cert-head-title{
+  font-family:var(--serif);
+  font-size:26px;
+  font-weight:500;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  margin-top:8px;
+  line-height:1.1;
+}
+.cert-head-subtitle{
+  font-family:var(--sans);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-top:5px;
+}
+
+/* meta — 2 items per row, label+value together */
+.cert-meta2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px 60px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+}
+.cert-meta2 .m{
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+  min-width:0;
+}
+.cert-meta2 .ml{
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  flex-shrink:0;
+  min-width:78px;
+}
+.cert-meta2 .mv{
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+.cert-meta2 .mv.mono{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em}
+
+/* data table with grid lines */
+.cert-data{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:13px;
+  flex:1;
+}
+.cert-data thead th{
+  text-align:left;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding:8px 12px;
+  border-bottom:1px solid var(--ink-3);
+  border-right:1px solid var(--line);
+  vertical-align:bottom;
+  line-height:1.25;
+  background:transparent;
+}
+.cert-data thead th:last-child{border-right:none}
+.cert-data thead th.r{text-align:right}
+.cert-data thead th.c{text-align:center}
+.cert-data tbody td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+  border-right:1px solid var(--line);
+  color:var(--ink-2);
+  vertical-align:middle;
+  overflow-wrap:break-word;
+}
+.cert-data tbody td:last-child{border-right:none}
+.cert-data tbody tr:last-child td{border-bottom:none}
+.cert-data td.subj{
+  font-family:var(--serif);
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--ink);
+}
+.cert-data td.num{
+  text-align:right;
+  font-family:var(--mono);
+  font-size:12.5px;
+  color:var(--ink);
+  white-space:nowrap;
+}
+.cert-data td.num.strong{font-weight:600;color:var(--primary)}
+.cert-data td.grade-cell{text-align:center}
+.cert-grade{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:var(--primary-soft);
+  color:var(--primary);
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:12px;
+}
+.cert-grade.distinction{background:var(--gold-soft);color:#8B6520}
+.cert-grade.credit{background:var(--primary-soft);color:var(--primary)}
+.cert-grade.pass{background:var(--info-soft);color:var(--info)}
+.cert-grade.fail{background:var(--danger-soft);color:var(--danger)}
+
+/* summary band */
+.cert-band{
+  display:grid;
+  grid-template-columns:1.4fr 1fr 1fr;
+  margin-top:12px;
+  border-top:2px solid var(--primary);
+  border-bottom:2px solid var(--primary);
+  flex-shrink:0;
+}
+.cert-band > .cell{
+  padding:12px 18px;
+  border-right:1px solid var(--line);
+  text-align:center;
+  min-width:0;
+}
+.cert-band > .cell:last-child{border-right:none}
+.cert-band .cl{
+  font-size:9.5px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:5px;
+}
+.cert-band .cv{
+  font-family:var(--serif);
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  color:var(--primary);
+  line-height:1;
+}
+.cert-band .cv.small{font-size:15px;padding-top:4px}
+.cert-band .cv.label-only{font-size:15px;font-family:var(--sans);font-weight:600;letter-spacing:.02em}
+
+/* note */
+.cert-note{
+  margin-top:10px;
+  padding:8px 14px;
+  background:var(--gold-soft);
+  border-left:3px solid var(--gold);
+  font-size:11.5px;
+  color:#6B4410;
+  line-height:1.5;
+  flex-shrink:0;
+}
+
+/* signature block */
+.cert-signs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:60px;
+  padding-top:34px;
+  margin-top:8px;
+  flex-shrink:0;
+}
+.cert-signs .s{
+  text-align:center;
+  font-size:10.5px;
+  color:var(--ink-3);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.cert-signs .s::before{
+  content:"";
+  display:block;
+  border-top:1px solid var(--ink-3);
+  margin-bottom:6px;
+}
+
+/* admission letter body */
+.cert-letter{
+  font-family:var(--serif);
+  font-size:14.5px;
+  line-height:1.85;
+  color:var(--ink-2);
+  flex:1;
+  padding:6px 2px 0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:14px;
+}
+.cert-letter p{margin:0}
+.cert-letter strong{color:var(--ink);font-weight:600}
+.cert-letter .mono{font-family:var(--mono);font-size:13px}
+
+/* transcript table */
+.cert-transcript{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:11.5px;
+  flex:1;
+}
+.cert-transcript th{
+  padding:7px 5px;
+  vertical-align:bottom;
+  text-align:center;
+  font-size:9.5px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  border-bottom:1px solid var(--ink-3);
+  border-right:1px solid var(--line);
+  line-height:1.25;
+}
+.cert-transcript th.left{text-align:left;padding-left:10px}
+.cert-transcript th.group{
+  border-bottom:1px solid var(--line);
+  font-size:11px;
+  color:var(--ink);
+  letter-spacing:.08em;
+}
+.cert-transcript th:last-child{border-right:none}
+.cert-transcript td{
+  padding:7px 5px;
+  text-align:center;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--ink-2);
+  border-bottom:1px solid var(--line);
+  border-right:1px solid var(--line);
+}
+.cert-transcript td:last-child{border-right:none}
+.cert-transcript td.left{
+  text-align:left;
+  padding-left:10px;
+  font-family:var(--serif);
+  font-size:12px;
+  font-weight:600;
+  color:var(--ink);
+}
+.cert-transcript tr.emph-row td{
+  background:var(--muted);
+  font-weight:600;
+  color:var(--primary);
+}
+
+/* scale line */
+.cert-scale{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px 24px;
+  padding-top:10px;
+  margin-top:8px;
+  border-top:1px solid var(--line);
+  font-size:10.5px;
+  color:var(--ink-3);
+  flex-shrink:0;
+}
+.cert-scale b{font-weight:600;color:var(--ink-2);margin-right:5px}
+
+/* print — full A4 landscape, one page, filled */
+@media print{
+  @page{size:A4 landscape;margin:5mm}
+  .cert-doc{
+    width:287mm;
+    height:200mm;
+    aspect-ratio:auto;
+    box-shadow:none;
+    page-break-inside:avoid;
+  }
+  .cert-doc-inner{padding:16px 28px 14px}
+  .cert-head-logo{width:60px;height:60px;margin-bottom:6px}
+  .cert-head-school{font-size:12px}
+  .cert-head-title{font-size:22px;margin-top:6px}
+  .cert-head-subtitle{font-size:10px;margin-top:3px}
+  .cert-head-block{padding-bottom:10px}
+  .cert-meta2{gap:5px 50px;padding:10px 0}
+  .cert-meta2 .ml{font-size:9.5px;min-width:70px}
+  .cert-meta2 .mv{font-size:12px}
+  .cert-data{font-size:12px}
+  .cert-data thead th{padding:6px 10px;font-size:9px}
+  .cert-data tbody td{padding:8px 10px}
+  .cert-data td.subj{font-size:12.5px}
+  .cert-data td.num{font-size:11.5px}
+  .cert-grade{width:22px;height:22px;font-size:11px}
+  .cert-band .cell{padding:10px 14px}
+  .cert-band .cv{font-size:19px}
+  .cert-signs{padding-top:26px}
+  .report-tabs,.no-print{display:none!important}
+  .report-block{display:none!important}
+  body.print-semester .report-block.semester{display:block!important}
+  body.print-transcript .report-block.transcript{display:block!important}
+  body.print-admission .report-block.admission{display:block!important}
+}
+
+@media(max-width:760px){
+  .cert-doc{aspect-ratio:auto}
+  .cert-doc-inner{padding:20px 16px}
+  .cert-meta2{grid-template-columns:1fr;gap:6px}
+  .cert-meta2 .mv{white-space:normal}
+  .cert-head-logo{width:56px;height:56px}
+  .cert-head-title{font-size:20px}
+  .cert-band{grid-template-columns:1fr}
+  .cert-band > .cell{border-right:none;border-bottom:1px solid var(--line)}
+  .cert-band > .cell:last-child{border-bottom:none}
+  .cert-signs{gap:30px}
+}

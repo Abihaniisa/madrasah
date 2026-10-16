@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CONFIG, TRANSCRIPT_GROUPS } from "../../lib/config";
+import { CONFIG, TRANSCRIPT_GROUPS, SECTIONS } from "../../lib/config";
 import { buildReport, loadSchool, type SchoolData } from "../../lib/data";
 import { gradeFor } from "../../lib/calc";
 import { useRequireAuth } from "../../lib/auth";
@@ -28,6 +28,7 @@ export default function ReportPage() {
 
   const report = buildReport(s, data.assessments, data.marks, data.exams);
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const sectionName = SECTIONS.find(x => x.id === s.section)?.name ?? s.section;
 
   function printCurrent() {
     document.body.classList.add("print-" + tab);
@@ -39,7 +40,7 @@ export default function ReportPage() {
     <div>
       <AdminTop mode={mode} onMode={setMode} />
       <div className="body">
-        <div className="wrap-narrow" style={{ maxWidth: 1060 }}>
+        <div className="wrap-narrow" style={{ maxWidth: 1140 }}>
           <div className="no-print" style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
             <Link className="btn btn-ghost btn-sm" to={`/admin/student/${s.id}`}>{I.back} Back</Link>
             <button className="btn btn-primary btn-sm" onClick={printCurrent}>{I.print} Print</button>
@@ -51,9 +52,9 @@ export default function ReportPage() {
             <button className={"chip-f " + (tab === "admission" ? "active" : "")} onClick={() => setTab("admission")}>Admission</button>
           </div>
 
-          {tab === "semester" && <SemesterReport s={s} report={report} today={today} />}
+          {tab === "semester" && <SemesterReport s={s} report={report} today={today} sectionName={sectionName} />}
           {tab === "transcript" && <Transcript s={s} report={report} today={today} />}
-          {tab === "admission" && <Admission s={s} today={today} />}
+          {tab === "admission" && <Admission s={s} today={today} sectionName={sectionName} />}
         </div>
       </div>
     </div>
@@ -62,7 +63,7 @@ export default function ReportPage() {
 
 /* ============================================================ */
 
-function SemesterReport({ s, report, today }: any) {
+function SemesterReport({ s, report, today, sectionName }: any) {
   const overallGrade = gradeFor(report.pending ? null : report.avg);
   const statusLabel = report.pending ? "Provisional" : "Complete";
 
@@ -73,18 +74,18 @@ function SemesterReport({ s, report, today }: any) {
           <img src="/logo.svg" alt="" className="cert-head-logo" />
           <div className="cert-head-school">{CONFIG.name}</div>
           <div className="cert-head-title">Semester Report</div>
-          <div className="cert-head-subtitle">{CONFIG.sessionLabel} · First Semester</div>
+          <div className="cert-head-subtitle">{CONFIG.sessionLabel} · {CONFIG.semesterLabel}</div>
         </div>
 
-        <div className="cert-fields">
-          <div className="f"><div className="fl">Student</div><div className="fv">{s.name}</div></div>
-          <div className="f"><div className="fl">Reg. No.</div><div className="fv mono">{s.reg_no}</div></div>
-          <div className="f"><div className="fl">Class</div><div className="fv">{s.class_name}</div></div>
-          <div className="f"><div className="fl">Mode</div><div className="fv">{s.mode === "online" ? "Online" : "Physical"}</div></div>
-          <div className="f"><div className="fl">Academic Section</div><div className="fv">{s.section}</div></div>
-          <div className="f"><div className="fl">Session</div><div className="fv">{CONFIG.sessionLabel}</div></div>
-          <div className="f"><div className="fl">Date Issued</div><div className="fv">{today}</div></div>
-          <div className="f"><div className="fl">Status</div><div className="fv">{statusLabel}</div></div>
+        <div className="cert-meta2">
+          <div className="m"><div className="ml">Student</div><div className="mv">{s.name}</div></div>
+          <div className="m"><div className="ml">Reg. No.</div><div className="mv mono">{s.reg_no}</div></div>
+          <div className="m"><div className="ml">Class</div><div className="mv">{s.class_name}</div></div>
+          <div className="m"><div className="ml">Mode</div><div className="mv">{s.mode === "online" ? "Online" : "Physical"}</div></div>
+          <div className="m"><div className="ml">Section</div><div className="mv">{sectionName}</div></div>
+          <div className="m"><div className="ml">Session</div><div className="mv">{CONFIG.sessionLabel}</div></div>
+          <div className="m"><div className="ml">Date Issued</div><div className="mv">{today}</div></div>
+          <div className="m"><div className="ml">Status</div><div className="mv">{statusLabel}</div></div>
         </div>
 
         <table className="cert-data">
@@ -99,7 +100,7 @@ function SemesterReport({ s, report, today }: any) {
           </thead>
           <tbody>
             {report.results.map((r: any) => {
-              const gradeKey = r.grade?.label?.toLowerCase() ?? "";
+              const gradeKey = (r.grade?.label ?? "").toLowerCase();
               return (
                 <tr key={r.subject}>
                   <td className="subj">{r.subject}</td>
@@ -132,7 +133,7 @@ function SemesterReport({ s, report, today }: any) {
 
         {report.pending && (
           <div className="cert-note">
-            Some subjects have pending marks. They will appear on this report once recorded.
+            Some subjects have pending marks. They will be reflected once recorded.
           </div>
         )}
 
@@ -152,15 +153,12 @@ function Transcript({ s, report, today }: any) {
   const classesInGroup = TRANSCRIPT_GROUPS[groupName];
   const groupSemesters = report.semesters.filter((g: any) => classesInGroup.includes(g.class_name));
 
-  // Column layout: one class per pair of columns (S1, S2)
   const classCols = classesInGroup.map(cls => ({
     cls,
-    short: cls.replace("Thanawiyyah ", "Th ").replace("'", "'"),
+    short: cls.replace("Thanawiyyah ", "Th "),
   }));
   const totalCols = classCols.length * 2;
-
-  // Fixed column widths
-  const subjectWidth = 170;
+  const subjectWidth = 150;
   const cellWidth = `calc((100% - ${subjectWidth}px) / ${totalCols})`;
 
   return (
@@ -173,11 +171,11 @@ function Transcript({ s, report, today }: any) {
           <div className="cert-head-subtitle">{groupName}</div>
         </div>
 
-        <div className="cert-fields">
-          <div className="f"><div className="fl">Student</div><div className="fv">{s.name}</div></div>
-          <div className="f"><div className="fl">Reg. No.</div><div className="fv mono">{s.reg_no}</div></div>
-          <div className="f"><div className="fl">Current Class</div><div className="fv">{s.class_name}</div></div>
-          <div className="f"><div className="fl">Date Issued</div><div className="fv">{today}</div></div>
+        <div className="cert-meta2">
+          <div className="m"><div className="ml">Student</div><div className="mv">{s.name}</div></div>
+          <div className="m"><div className="ml">Reg. No.</div><div className="mv mono">{s.reg_no}</div></div>
+          <div className="m"><div className="ml">Current Class</div><div className="mv">{s.class_name}</div></div>
+          <div className="m"><div className="ml">Date Issued</div><div className="mv">{today}</div></div>
         </div>
 
         {groupSemesters.length === 0 ? (
@@ -220,14 +218,14 @@ function Transcript({ s, report, today }: any) {
                 <td className="left">Average</td>
                 {classCols.flatMap(c => ([1, 2] as const).map(sem => {
                   const g = groupSemesters.find((x: any) => x.class_name === c.cls && x.semester === sem);
-                  return <td key={`${c.cls}-${sem}`} className="emph">{g?.avg != null ? g.avg.toFixed(1) : "—"}</td>;
+                  return <td key={`${c.cls}-${sem}`}>{g?.avg != null ? g.avg.toFixed(1) : "—"}</td>;
                 }))}
               </tr>
               <tr className="emph-row">
                 <td className="left">Grade</td>
                 {classCols.flatMap(c => ([1, 2] as const).map(sem => {
                   const g = groupSemesters.find((x: any) => x.class_name === c.cls && x.semester === sem);
-                  return <td key={`${c.cls}-${sem}`} className="emph">{g?.avg != null ? gradeFor(g.avg).code : "—"}</td>;
+                  return <td key={`${c.cls}-${sem}`}>{g?.avg != null ? gradeFor(g.avg).code : "—"}</td>;
                 }))}
               </tr>
             </tbody>
@@ -235,9 +233,9 @@ function Transcript({ s, report, today }: any) {
         )}
 
         <div className="cert-scale">
-          <span><b>A</b>Distinction · 75+</span>
-          <span><b>B</b>Credit · 60–74</span>
-          <span><b>C</b>Pass · 50–59</span>
+          <span><b>A</b>Distinction · 75 and above</span>
+          <span><b>B</b>Credit · 60 to 74</span>
+          <span><b>C</b>Pass · 50 to 59</span>
           <span><b>D</b>Fail · below 50</span>
         </div>
 
@@ -252,7 +250,8 @@ function Transcript({ s, report, today }: any) {
 
 /* ============================================================ */
 
-function Admission({ s, today }: any) {
+function Admission({ s, today, sectionName }: any) {
+  const admitted = new Date(s.joined).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   return (
     <div className="report-block admission cert-doc">
       <div className="cert-doc-inner">
@@ -263,23 +262,29 @@ function Admission({ s, today }: any) {
           <div className="cert-head-subtitle">Official Record</div>
         </div>
 
-        <div className="cert-letter">
-          <p>
-            This is to certify that <strong>{s.name}</strong>, bearing Reg. No.{" "}
-            <span className="mono"><strong>{s.reg_no}</strong></span>, was admitted into{" "}
-            <strong>{s.class_name}</strong> at {CONFIG.name} as a{" "}
-            {s.mode === "online" ? "online" : "physical"} student on{" "}
-            <strong>{new Date(s.joined).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong>.
-          </p>
-          <p>
-            The registration number above is the student's permanent identifier and does not change on promotion,
-            repetition, or advancement to a new section.
-          </p>
+        <div className="cert-meta2">
+          <div className="m"><div className="ml">Student</div><div className="mv">{s.name}</div></div>
+          <div className="m"><div className="ml">Reg. No.</div><div className="mv mono">{s.reg_no}</div></div>
+          <div className="m"><div className="ml">Class</div><div className="mv">{s.class_name}</div></div>
+          <div className="m"><div className="ml">Section</div><div className="mv">{sectionName}</div></div>
         </div>
 
-        <div className="cert-fields" style={{ marginTop: 28, borderTop: "1px solid var(--line)", borderBottom: "none", paddingTop: 22, paddingBottom: 0 }}>
-          <div className="f"><div className="fl">Date Issued</div><div className="fv">{today}</div></div>
-          <div className="f"><div className="fl">Status</div><div className="fv">{s.status === "active" ? "Active" : s.status}</div></div>
+        <div className="cert-letter">
+          <p>
+            This letter confirms that <strong>{s.name}</strong>, registration number{" "}
+            <span className="mono"><strong>{s.reg_no}</strong></span>, was admitted into{" "}
+            <strong>{s.class_name}</strong> at {CONFIG.name} as a{" "}
+            {s.mode === "online" ? "physical or online student" : "physical student"} on{" "}
+            <strong>{admitted}</strong>.
+          </p>
+          <p>
+            The registration number above is the student's permanent identifier. It does not change
+            upon promotion, repetition, or advancement to a new section.
+          </p>
+          <p>
+            This letter is issued as a permanent record of the student's admission and may be
+            reprinted at any time from the school's records.
+          </p>
         </div>
 
         <div className="cert-signs">

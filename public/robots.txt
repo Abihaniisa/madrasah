@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /login
+Disallow: /me
 
-Sitemap: https://madrasah.vercel.app/sitemap.xml
+Sitemap: https://madrasatus-sahaba.vercel.app/sitemap.xml
