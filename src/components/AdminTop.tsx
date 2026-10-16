@@ -16,7 +16,7 @@ export function AdminTop({ mode, onMode }: { mode: "view" | "manage"; onMode: (m
     <>
       <div className="top">
         <div className="wrap top-inner">
-          <Link to="/" className="brand">
+          <Link to="/admin" className="brand">
             <img src="/logo.svg" alt="" className="brand-logo" />
             <div>
               <div className="brand-name">{CONFIG.short}</div>
@@ -24,16 +24,13 @@ export function AdminTop({ mode, onMode }: { mode: "view" | "manage"; onMode: (m
           </Link>
           <div className="top-nav">
             <Link to="/admin" className={on("/admin")}>Students</Link>
+            <Link to="/admin/daura" className={on("/admin/daura")}>Daura</Link>
             <Link to="/admin/content" className={on("/admin/content")}>Content</Link>
             <Link to="/admin/fees" className={on("/admin/fees")}>Fees</Link>
             {superAdmin && <Link to="/admin/promotion" className={on("/admin/promotion")}>End of Session</Link>}
             {superAdmin && <Link to="/admin/access" className={on("/admin/access")}>Access</Link>}
           </div>
           <div className="top-right">
-            <Link to="/" className="exit-link" title="Back to public site">
-              {I.exit}
-              <span className="lbl">Public site</span>
-            </Link>
             <div className="mode-toggle">
               <button className={mode === "view" ? "active" : ""} onClick={() => onMode("view")}>View</button>
               <button className={mode === "manage" ? "active manage" : ""} onClick={() => onMode("manage")}>Manage</button>
@@ -51,9 +48,9 @@ export function AdminTop({ mode, onMode }: { mode: "view" | "manage"; onMode: (m
       <div className="tabbar">
         <div className="tabbar-inner">
           <Link to="/admin" className={on("/admin")}>{I.user}Students</Link>
+          <Link to="/admin/daura" className={on("/admin/daura")}>{I.book}Daura</Link>
           <Link to="/admin/content" className={on("/admin/content")}>{I.folder}Content</Link>
           <Link to="/admin/fees" className={on("/admin/fees")}>{I.money}Fees</Link>
-          {superAdmin && <Link to="/admin/access" className={on("/admin/access")}>{I.check}Access</Link>}
         </div>
       </div>
     </>

@@ -6,6 +6,7 @@ import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I } from "../../components/Layout";
+import { DelayedSkeleton } from "../../components/Skeleton";
 
 export default function Landing() {
   const ready = useRequireAuth();
@@ -28,7 +29,7 @@ export default function Landing() {
       .slice(0, 40);
   }, [data, q]);
 
-  if (!ready) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={false} rows={4} /></div></div>;
 
   return (
     <div>

@@ -5,6 +5,7 @@ import Curriculum from "./pages/Curriculum";
 import Materials from "./pages/Materials";
 import Login from "./pages/Login";
 import Builder from "./pages/Builder";
+import StudentPortal from "./pages/StudentPortal";
 import Landing from "./pages/admin/Landing";
 import ClassPage from "./pages/admin/ClassPage";
 import StudentPage from "./pages/admin/StudentPage";
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/materials" element={<Materials />} />
         <Route path="/login" element={<Login />} />
         <Route path="/builder" element={<Builder />} />
+        <Route path="/me" element={<StudentPortal />} />
 
         <Route path="/admin" element={<Landing />} />
         <Route path="/admin/class/:cls" element={<ClassPage />} />

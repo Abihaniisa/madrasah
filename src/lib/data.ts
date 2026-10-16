@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Assessment, Exam, Fee, Mark, Material, Student, SubjectResult } from "./types";
+import type { Assessment, Exam, Fee, FeePayment, Mark, Material, Student, SubjectResult } from "./types";
 import { CONFIG } from "./config";
 import {
   subjectResult, semesterAvg, hasPending,
@@ -13,15 +13,17 @@ export type SchoolData = {
   marks: Mark[];
   exams: Exam[];
   fees: Fee[];
+  feePayments: FeePayment[];
 };
 
 export async function loadSchool(): Promise<SchoolData> {
-  const [students, assessments, marks, exams, fees] = await Promise.all([
+  const [students, assessments, marks, exams, fees, feePayments] = await Promise.all([
     supabase.from("students").select("*").order("name"),
     supabase.from("assessments").select("*").order("created_at"),
     supabase.from("marks").select("*"),
     supabase.from("exams").select("*"),
     supabase.from("fees").select("*"),
+    supabase.from("fee_payments").select("*").order("paid_on"),
   ]);
   return {
     students: (students.data as Student[]) ?? [],
@@ -29,6 +31,7 @@ export async function loadSchool(): Promise<SchoolData> {
     marks: (marks.data as Mark[]) ?? [],
     exams: (exams.data as Exam[]) ?? [],
     fees: (fees.data as Fee[]) ?? [],
+    feePayments: (feePayments.data as FeePayment[]) ?? [],
   };
 }
 

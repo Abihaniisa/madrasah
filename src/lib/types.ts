@@ -61,6 +61,19 @@ export type Fee = {
   status: "unpaid" | "partial" | "paid" | "scholarship";
 };
 
+export type FeePayment = {
+  id: string;
+  student_id: string;
+  year: string;
+  amount: number;
+  method: "cash" | "transfer" | "pos" | "other";
+  reference: string | null;
+  note: string | null;
+  paid_on: string;
+  recorded_by: string | null;
+  created_at: string;
+};
+
 export type Material = {
   id: string;
   title: string;

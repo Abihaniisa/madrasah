@@ -258,3 +258,42 @@ on conflict (email) do nothing;
 insert into students (reg_no, name, section, class_name, mode, joined)
 values ('2026-MS-0001', 'Abihani Isa', 'secondary', 'Thanawiyyah 1', 'online', current_date)
 on conflict (reg_no) do nothing;
+
+-- ============================================================
+-- STUDENT PORTAL RPC
+-- ============================================================
+create or replace function student_portal(p_nin text, p_reg_no text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student students;
+  v_result json;
+begin
+  select * into v_student
+  from students
+  where nin = p_nin and reg_no = p_reg_no and status = 'active'
+  limit 1;
+
+  if v_student.id is null then
+    return json_build_object('ok', false, 'error', 'No matching student.');
+  end if;
+
+  select json_build_object(
+    'ok', true,
+    'student', row_to_json(v_student),
+    'marks', coalesce((select json_agg(m.*) from marks m where m.student_id = v_student.id), '[]'::json),
+    'exams', coalesce((select json_agg(e.*) from exams e where e.student_id = v_student.id), '[]'::json),
+    'assessments', coalesce((select json_agg(a.*) from assessments a where a.class_name = v_student.class_name), '[]'::json),
+    'fees', coalesce((select json_agg(f.*) from fees f where f.student_id = v_student.id), '[]'::json),
+    'fee_payments', coalesce((select json_agg(fp.*) from fee_payments fp where fp.student_id = v_student.id), '[]'::json),
+    'daura_participations', coalesce((select json_agg(dp.*) from daura_participants dp where dp.student_id = v_student.id), '[]'::json)
+  ) into v_result;
+
+  return v_result;
+end;
+$$;
+
+grant execute on function student_portal(text, text) to anon;

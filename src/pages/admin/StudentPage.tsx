@@ -7,6 +7,7 @@ import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
 import { I, waLink } from "../../components/Layout";
+import { DelayedSkeleton } from "../../components/Skeleton";
 import { Modal } from "../../components/Modal";
 import { supabase } from "../../lib/supabase";
 
@@ -21,8 +22,8 @@ export default function StudentPage() {
   async function reload() { setData(await loadSchool()); }
   useEffect(() => { loadSchool().then(setData); }, []);
 
-  if (!ready) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
-  if (!data) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><DelayedSkeleton ready={false} rows={5} /></div></div>;
+  if (!data) return <div className="body"><div className="wrap"><DelayedSkeleton ready={false} rows={5} /></div></div>;
 
   const s = data.students.find(x => x.id === id);
   if (!s) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Student not found</div></div></div></div>;

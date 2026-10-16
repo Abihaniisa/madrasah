@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { CONFIG } from "../lib/config";
 import { signIn, supabase, isAuthorized } from "../lib/supabase";
+import { saveStudentSession, fetchStudentPortal } from "../lib/student";
 
 export default function Login() {
   const nav = useNavigate();
@@ -10,14 +11,17 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const isStudentId = identifier.trim().length === 11 && /^\d+$/.test(identifier.trim());
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
     const id = identifier.trim();
+    const sec = secret.trim();
 
     if (id.includes("@")) {
-      const { error } = await signIn(id, secret);
+      const { error } = await signIn(id, sec);
       if (error) { setErr(error.message); setBusy(false); return; }
       const ok = await isAuthorized();
       if (!ok) { await supabase.auth.signOut(); setErr("Not authorized."); setBusy(false); return; }
@@ -26,38 +30,47 @@ export default function Login() {
       return;
     }
 
-    setErr("Student portal is not yet open.");
+    if (id.length === 11 && /^\d+$/.test(id)) {
+      const res = await fetchStudentPortal(id, sec.toUpperCase());
+      if (!res.ok) { setErr(res.error || "NIN and Reg. No. do not match."); setBusy(false); return; }
+      saveStudentSession(id, sec.toUpperCase());
+      setBusy(false);
+      nav("/me");
+      return;
+    }
+
+    setErr("Enter an email, or your NIN (11 digits).");
     setBusy(false);
   }
 
   return (
     <div className="login-shell">
       <div className="login-card">
-        <img src="/logo.svg" alt="" width={56} height={56} style={{ display: "block", margin: "0 auto 18px" }} />
+        <img src="/logo.svg" alt="" width={60} height={60} style={{ display: "block", margin: "0 auto 18px" }} />
         <h1>Sign in</h1>
         <p className="sub">{CONFIG.short}</p>
         <form className="login-form" onSubmit={onSubmit}>
           <div className="field">
-            <label>Email</label>
+            <label>{isStudentId ? "NIN (11 digits)" : "Email"}</label>
             <input
               className="input"
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
-              placeholder="name@example.com"
+              placeholder="name@example.com or 12345678901"
               required
               autoComplete="username"
             />
           </div>
           <div className="field">
-            <label>Password</label>
+            <label>{isStudentId ? "Reg. No." : "Password"}</label>
             <input
               className="input"
-              type="password"
+              type={isStudentId ? "text" : "password"}
               value={secret}
               onChange={e => setSecret(e.target.value)}
-              placeholder="••••••••"
+              placeholder={isStudentId ? "2026-MS-0001" : "••••••••"}
               required
-              autoComplete="current-password"
+              autoComplete={isStudentId ? "off" : "current-password"}
             />
           </div>
           {err && <div className="notice">{err}</div>}
@@ -65,7 +78,10 @@ export default function Login() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <div className="login-note">Staff only. Contact the administrator for access.</div>
+        <div className="login-note">
+          {isStudentId ? "Signing in as a student." : "Staff sign in with email. Students use NIN and Reg. No."}
+        </div>
+        <Link to="/" className="login-public">← Back to public site</Link>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CONFIG, SECTIONS } from "../../lib/config";
-import { buildReport, loadSchool, type SchoolData } from "../../lib/data";
+import { loadSchool, type SchoolData } from "../../lib/data";
 import { useRequireAuth } from "../../lib/auth";
 import { useMode } from "../../lib/mode";
 import { AdminTop } from "../../components/AdminTop";
@@ -13,76 +13,113 @@ export default function SheetPage() {
   const cls = decodeURIComponent(clsRaw || "");
   const [mode, setMode] = useMode();
   const [data, setData] = useState<SchoolData | null>(null);
+  const [subject, setSubject] = useState<string>(CONFIG.subjects[0]);
 
   useEffect(() => { loadSchool().then(setData); }, []);
 
-  if (!ready) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Checking access…</div></div></div></div>;
-  if (!data) return <div className="body"><div className="wrap"><div className="empty"><div className="t">Loading…</div></div></div></div>;
+  if (!ready) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
+  if (!data) return <div className="body"><div className="wrap"><div style={{ minHeight: 80 }} /></div></div>;
 
   const sec = SECTIONS.find(s => s.classes.includes(cls));
-  const students = [...data.students.filter(s => s.class_name === cls)].sort((a, b) => {
-    const ra = buildReport(a, data.assessments, data.marks, data.exams).avg ?? -1;
-    const rb = buildReport(b, data.assessments, data.marks, data.exams).avg ?? -1;
-    return rb - ra;
-  });
+  const students = [...data.students.filter(s => s.class_name === cls)].sort((a, b) => a.name.localeCompare(b.name));
+  const assessments = data.assessments
+    .filter(a => a.class_name === cls && a.subject === subject && a.session_label === CONFIG.sessionLabel && a.semester === 1)
+    .sort((a, b) => {
+      const na = parseInt(a.label.match(/(\d+)/)?.[1] ?? "0", 10);
+      const nb = parseInt(b.label.match(/(\d+)/)?.[1] ?? "0", 10);
+      return na - nb;
+    });
 
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const classAvg = (() => {
-    const vals = students.map(s => buildReport(s, data.assessments, data.marks, data.exams).avg).filter((v): v is number => v != null);
-    if (!vals.length) return null;
-    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
-  })();
+
+  function markFor(studentId: string, assessmentId: string): number | null {
+    const m = data!.marks.find(x => x.assessment_id === assessmentId && x.student_id === studentId);
+    return m?.value ?? null;
+  }
+
+  function subjectAvg(studentId: string): number | null {
+    if (!assessments.length) return null;
+    let sum = 0;
+    let counted = 0;
+    for (const a of assessments) {
+      const v = markFor(studentId, a.id);
+      if (v == null) return null;
+      sum += v / a.max_marks;
+      counted++;
+    }
+    if (!counted) return null;
+    return Math.round((sum / counted) * 10000) / 100;
+  }
 
   return (
     <div>
       <AdminTop mode={mode} onMode={setMode} />
       <div className="body">
         <div className="wrap">
-          <div className="no-print" style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+          <div className="no-print" style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
             <Link className="btn btn-ghost btn-sm" to={`/admin/class/${encodeURIComponent(cls)}`}>{I.back} Back to class</Link>
-            <button className="btn btn-primary btn-sm" onClick={() => window.print()}>{I.print} Print / Save as PDF</button>
+            <button className="btn btn-primary btn-sm" onClick={() => window.print()}>{I.print} Print</button>
           </div>
 
-          <div className="rc" style={{ maxWidth: 900 }}>
+          <div className="chip-line no-print" style={{ marginBottom: 16 }}>
+            {CONFIG.subjects.map(subj => (
+              <button key={subj} className={"chip-f " + (subject === subj ? "active" : "")} onClick={() => setSubject(subj)}>{subj}</button>
+            ))}
+          </div>
+
+          <div className="rc rc-landscape sheet-print">
             <div className="rc-head">
               <div className="s">{CONFIG.name}</div>
-              <h2>Class Result Sheet</h2>
-              <div className="sub" style={{ marginTop: 4, fontSize: 12 }}>{cls} · {CONFIG.sessionLabel} · {CONFIG.semesterLabel}</div>
+              <h2>Assessment Sheet · {subject}</h2>
+              <div className="sub" style={{ marginTop: 4, fontSize: 12 }}>
+                {cls} · {CONFIG.sessionLabel} · {CONFIG.semesterLabel}
+              </div>
             </div>
 
-            <table className="rt" style={{ fontSize: 13 }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 34 }}>#</th>
-                  <th style={{ width: "32%" }}>Student</th>
-                  <th>Registration</th>
-                  <th style={{ textAlign: "right" }}>Semester</th>
-                  <th style={{ textAlign: "right" }}>Cumulative</th>
-                  <th style={{ textAlign: "right" }}>Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => {
-                  const r = buildReport(s, data.assessments, data.marks, data.exams);
-                  const grade = r.results.find(x => x.final != null)?.grade.label ?? "—";
-                  return (
-                    <tr key={s.id}>
-                      <td className="n" style={{ color: "var(--ink-3)" }}>{i + 1}</td>
-                      <td className="s">{s.name}</td>
-                      <td className="n" style={{ fontSize: 11, fontFamily: "var(--mono)", textAlign: "left" }}>{s.reg_no}</td>
-                      <td className="n" style={{ fontWeight: 600 }}>{r.avg != null ? r.avg + "%" : "—"}</td>
-                      <td className="n" style={{ fontWeight: 600 }}>{r.avg != null ? r.avg + "%" : "—"}</td>
-                      <td className="n" style={{ fontFamily: "var(--sans)", fontSize: 11.5 }}>{grade}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {assessments.length === 0 ? (
+              <div className="empty"><div className="t">No assessments recorded for {subject} yet</div></div>
+            ) : students.length === 0 ? (
+              <div className="empty"><div className="t">No students in this class</div></div>
+            ) : (
+              <table className="rt table-land sheet-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 34 }}>#</th>
+                    <th style={{ width: "28%" }}>Student</th>
+                    <th style={{ width: 130 }}>Reg. No.</th>
+                    {assessments.map(a => (
+                      <th key={a.id} style={{ textAlign: "right", fontSize: 10.5 }}>
+                        {a.label}<br />
+                        <span style={{ fontWeight: 400, color: "var(--ink-3)" }}>of {a.max_marks}</span>
+                      </th>
+                    ))}
+                    <th style={{ textAlign: "right" }}>Avg %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, i) => {
+                    const avg = subjectAvg(s.id);
+                    return (
+                      <tr key={s.id}>
+                        <td className="n" style={{ color: "var(--ink-3)" }}>{i + 1}</td>
+                        <td className="s">{s.name}</td>
+                        <td className="n" style={{ fontSize: 11, fontFamily: "var(--mono)", textAlign: "left" }}>{s.reg_no}</td>
+                        {assessments.map(a => {
+                          const v = markFor(s.id, a.id);
+                          return <td key={a.id} className="n">{v == null ? "—" : v}</td>;
+                        })}
+                        <td className="n" style={{ fontWeight: 600 }}>{avg != null ? avg.toFixed(1) : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
 
             <div className="rc-foot">
-              <div>Class average: {classAvg != null ? classAvg + "%" : "—"} · {students.length} students · Issued {today}</div>
+              <div>{students.length} students · {assessments.length} assessments · Issued {today}</div>
               <div className="rc-sign">
-                <div>Class Teacher</div>
+                <div>Subject Teacher</div>
                 <div>Head of School</div>
               </div>
             </div>
